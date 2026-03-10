@@ -14,6 +14,7 @@ workflows:
         BUNDLE_ID: "com.justingallahar.totalathlete"
         XCODE_WORKSPACE: "Runner.xcworkspace"
         XCODE_SCHEME: "Runner"
+        APP_STORE_ID: "6760272087"
       flutter: stable
       xcode: latest
       cocoapods: default
@@ -22,18 +23,23 @@ workflows:
         script: |
           cd $CM_BUILD_DIR
           flutter packages get
+
       - name: Install CocoaPods dependencies
         script: |
           cd $CM_BUILD_DIR/ios
+          pod repo update
           pod install
+
       - name: Set up code signing settings on Xcode project
         script: |
           cd $CM_BUILD_DIR
           xcode-project use-profiles
+
       - name: Flutter analyze
         script: |
           cd $CM_BUILD_DIR
           flutter analyze
+
       - name: Flutter build ipa
         script: |
           cd $CM_BUILD_DIR
@@ -42,10 +48,12 @@ workflows:
             --build-name=1.0.0 \
             --build-number=$(($(app-store-connect get-latest-testflight-build-number "$APP_STORE_ID") + 1)) \
             --export-options-plist=/Users/builder/export_options.plist
+
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - flutter_drive.log
+
     publishing:
       email:
         recipients:
@@ -55,11 +63,9 @@ workflows:
           failure: true
       app_store_connect:
         auth: integration
-        # Configuration related to TestFlight (optional)
         submit_to_testflight: true
         beta_groups:
           - Internal Testers
-        # Configuration related to App Store (optional)
         submit_to_app_store: false
 
   android-workflow:
@@ -75,34 +81,38 @@ workflows:
       vars:
         PACKAGE_NAME: "com.justingallahar.totalathlete"
       flutter: stable
-      xcode: latest
-      cocoapods: default
     scripts:
       - name: Set up local.properties
         script: |
           cd $CM_BUILD_DIR
           echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
+
       - name: Get Flutter packages
         script: |
           cd $CM_BUILD_DIR
           flutter pub get
+
       - name: Flutter analyze
         script: |
           cd $CM_BUILD_DIR
           flutter analyze
+
       - name: Build APK with Flutter
         script: |
           cd $CM_BUILD_DIR
           flutter build apk --release -t lib/main.dart
+
       - name: Build AAB with Flutter
         script: |
           cd $CM_BUILD_DIR
           flutter build appbundle --release -t lib/main.dart
+
     artifacts:
       - build/app/outputs/**/*.apk
       - build/app/outputs/**/*.aab
       - build/app/outputs/**/mapping.txt
       - flutter_drive.log
+
     publishing:
       email:
         recipients:
